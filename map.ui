@@ -122,34 +122,60 @@
      <string>Введите топоним:</string>
     </property>
    </widget>
-   <widget class="QComboBox" name="comboBox">
+   <widget class="QPushButton" name="mapButton">
     <property name="geometry">
      <rect>
-      <x>700</x>
-      <y>170</y>
-      <width>301</width>
-      <height>31</height>
+      <x>650</x>
+      <y>160</y>
+      <width>111</width>
+      <height>41</height>
      </rect>
     </property>
-    <item>
-     <property name="text">
-      <string>Карта</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string>Спутник</string>
-     </property>
-    </item>
-    <item>
-     <property name="text">
-      <string>Гибрид</string>
-     </property>
-    </item>
+    <property name="text">
+     <string>Карта</string>
+    </property>
+    <attribute name="buttonGroup">
+     <string notr="true">buttonGroup</string>
+    </attribute>
+   </widget>
+   <widget class="QPushButton" name="satButton">
+    <property name="geometry">
+     <rect>
+      <x>780</x>
+      <y>160</y>
+      <width>111</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Спутник</string>
+    </property>
+    <attribute name="buttonGroup">
+     <string notr="true">buttonGroup</string>
+    </attribute>
+   </widget>
+   <widget class="QPushButton" name="sklButton">
+    <property name="geometry">
+     <rect>
+      <x>900</x>
+      <y>160</y>
+      <width>111</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Гибрид</string>
+    </property>
+    <attribute name="buttonGroup">
+     <string notr="true">buttonGroup</string>
+    </attribute>
    </widget>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <resources/>
  <connections/>
+ <buttongroups>
+  <buttongroup name="buttonGroup"/>
+ </buttongroups>
 </ui>

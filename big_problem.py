@@ -9,15 +9,24 @@ import os
 
 
 class Parser:
-    def request_map(self, cords, zoom, style):
+    def request_map(self, cords, zoom, style, pt=False):
         str_cords = ','.join(cords[::-1])
         service = 'https://static-maps.yandex.ru/1.x/'
-        map_params = {
-            'll': str_cords,
-            'size': '450,450',
-            'l': f'{style}',
-            'z': zoom
-        }
+        if pt:
+            map_params = {
+                'll': str_cords,
+                'size': '450,450',
+                'l': f'{style}',
+                'z': zoom,
+                'pt': pt
+            }
+        else:
+            map_params = {
+                'll': str_cords,
+                'size': '450,450',
+                'l': f'{style}',
+                'z': zoom
+            }
         response = requests.get(service, params=map_params)
         with open('map.png', 'wb') as image:
             image.write(response.content)
@@ -43,10 +52,14 @@ class Input_window(QMainWindow):
         self.showMap.clicked.connect(self.load_image)
         self.parser = Parser()
         self.map_show = False
+        self.pt = None
         self.map_cords = None
         self.zoom = 9
+        self.lineEdit_3.setText('Москва')
         self.style = 'map'
-        self.comboBox.activated[str].connect(self.sut)
+        lst = [self.mapButton, self.satButton, self.sklButton]
+        for i in lst:
+            i.clicked.connect(lambda state, name=i.text(): self.sut(name))
 
     def load_image(self):
         first_cords = self.lineEdit.text()
@@ -62,7 +75,9 @@ class Input_window(QMainWindow):
         elif toponym:
             right_cords = self.parser.request_cords(toponym).split(' ')
             self.map_cords = right_cords[::-1]
-            self.parser.request_map(self.map_cords, self.zoom, self.style)
+            crd = ','.join(self.map_cords[::-1])
+            self.parser.request_map(self.map_cords, self.zoom, self.style, pt=f'{crd},pma')
+            self.pt = f'{crd},pma'
             pixmap = QPixmap('map.png')
             self.label_3.setPixmap(pixmap)
             self.map_show = True
@@ -71,15 +86,19 @@ class Input_window(QMainWindow):
         if event.key() == Qt.Key_PageDown and self.map_show:
             if self.zoom < 17:
                 self.zoom += 1
-                self.parser.request_map(self.map_cords, self.zoom, self.style)
-                pixmap = QPixmap('map.png')
-                self.label_3.setPixmap(pixmap)
+                if self.pt:
+                    self.parser.request_map(self.map_cords, self.zoom, self.style, self.pt)
+                else:
+                    self.parser.request_map(self.map_cords, self.zoom, self.style)
         if event.key() == Qt.Key_PageUp and self.map_show:
             if self.zoom > 0:
                 self.zoom -= 1
-                self.parser.request_map(self.map_cords, self.zoom, self.style)
-                pixmap = QPixmap('map.png')
-                self.label_3.setPixmap(pixmap)
+                if self.pt:
+                    self.parser.request_map(self.map_cords, self.zoom, self.style, self.pt)
+                else:
+                    self.parser.request_map(self.map_cords, self.zoom, self.style)
+        pixmap = QPixmap('map.png')
+        self.label_3.setPixmap(pixmap)
 
     def sut(self, text):
         if text == 'Гибрид':
@@ -88,10 +107,12 @@ class Input_window(QMainWindow):
             self.style = 'map'
         if text == 'Спутник':
             self.style = 'sat'
-        if self.map_show:
+        if self.pt:
+            self.parser.request_map(self.map_cords, self.zoom, self.style, self.pt)
+        else:
             self.parser.request_map(self.map_cords, self.zoom, self.style)
-            pixmap = QPixmap('map.png')
-            self.label_3.setPixmap(pixmap)
+        pixmap = QPixmap('map.png')
+        self.label_3.setPixmap(pixmap)
 
 
 if __name__ == '__main__':
