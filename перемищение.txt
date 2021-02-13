@@ -1,0 +1,21 @@
+if event.key() == Qt.Key_D :
+                self.map_cords[1] = str(float(self.map_cords[1]) + ((360 / pow(2, self.zoom + 8)) * 225))
+                self.parser.request_map(self.map_cords, self.zoom, self.style)
+                pixmap = QPixmap('map.png')
+                self.label_3.setPixmap(pixmap)
+if event.key() == Qt.Key_A:
+                self.map_cords[1] = str(float(self.map_cords[1]) - ((360 / pow(2, self.zoom + 8)) * 225))
+                self.parser.request_map(self.map_cords, self.zoom, self.style)
+                pixmap = QPixmap('map.png')
+                self.label_3.setPixmap(pixmap)
+if event.key() == Qt.Key_W:
+                print(360 / pow(2, self.zoom + 8))
+                self.map_cords[0] = str(float(self.map_cords[0]) + ((360 / pow(2, self.zoom + 8)) * 225))
+                self.parser.request_map(self.map_cords, self.zoom, self.style)
+                pixmap = QPixmap('map.png')
+                self.label_3.setPixmap(pixmap)
+if event.key() == Qt.Key_S:
+                self.map_cords[0] = str(float(self.map_cords[0]) -((360 / pow(2, self.zoom + 8)) * 225))
+                self.parser.request_map(self.map_cords, self.zoom, self.style)
+                pixmap = QPixmap('map.png')
+                self.label_3.setPixmap(pixmap)
