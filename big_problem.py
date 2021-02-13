@@ -1,15 +1,13 @@
 import requests
-from PyQt5.QtCore import QUrl
 from PyQt5.QtWidgets import *
 from PyQt5 import uic
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 import sys
-import os
 
 
 class Parser:
-    def request_map(self, cords, zoom, style, pt=False):
+    def request_map(self, cords, zoom, style, pt=None):
         str_cords = ','.join(cords[::-1])
         service = 'https://static-maps.yandex.ru/1.x/'
         if pt:
@@ -44,7 +42,7 @@ class Parser:
         return toponym_coodrinates
 
 
-class Input_window(QMainWindow):
+class InputWindow(QMainWindow):
     def __init__(self):
         super(QMainWindow, self).__init__()
         uic.loadUi('map.ui', self)
@@ -86,17 +84,21 @@ class Input_window(QMainWindow):
         if event.key() == Qt.Key_PageDown and self.map_show:
             if self.zoom < 17:
                 self.zoom += 1
-                if self.pt:
-                    self.parser.request_map(self.map_cords, self.zoom, self.style, self.pt)
-                else:
-                    self.parser.request_map(self.map_cords, self.zoom, self.style)
         if event.key() == Qt.Key_PageUp and self.map_show:
             if self.zoom > 0:
                 self.zoom -= 1
-                if self.pt:
-                    self.parser.request_map(self.map_cords, self.zoom, self.style, self.pt)
-                else:
-                    self.parser.request_map(self.map_cords, self.zoom, self.style)
+        if event.key() == Qt.Key_D and self.map_show:
+            self.map_cords[1] = str(float(self.map_cords[1]) + ((360 / pow(2, self.zoom + 8)) * 325))
+        if event.key() == Qt.Key_A and self.map_show:
+            self.map_cords[1] = str(float(self.map_cords[1]) - ((360 / pow(2, self.zoom + 8)) * 325))
+        if event.key() == Qt.Key_W and self.map_show:
+            self.map_cords[0] = str(float(self.map_cords[0]) + ((360 / pow(2, self.zoom + 8)) * 225))
+        if event.key() == Qt.Key_S and self.map_show:
+            self.map_cords[0] = str(float(self.map_cords[0]) - ((360 / pow(2, self.zoom + 8)) * 225))
+        if self.pt:
+            self.parser.request_map(self.map_cords, self.zoom, self.style, self.pt)
+        else:
+            self.parser.request_map(self.map_cords, self.zoom, self.style)
         pixmap = QPixmap('map.png')
         self.label_3.setPixmap(pixmap)
 
@@ -118,6 +120,6 @@ class Input_window(QMainWindow):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     p = Parser()
-    m = Input_window()
+    m = InputWindow()
     m.show()
     sys.exit(app.exec())
