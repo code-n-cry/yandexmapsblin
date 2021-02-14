@@ -35,6 +35,20 @@ class Parser:
         with open('map.png', 'wb') as image:
             image.write(response.content)
 
+    def get_post_index(self, subj):
+        try:
+            geo_params = {
+                'geocode': subj,
+                'apikey': self.geo_apikey,
+                'format': 'json'
+            }
+            response = requests.get(self.geo_service, params=geo_params).json()
+            toponym = response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
+            postal = toponym['metaDataProperty']['GeocoderMetaData']['Address']['postal_code']
+            return postal
+        except KeyError:
+            return 'не удалось получить'
+
     def request_cords(self, place):
         geo_params = {
             'geocode': place,
@@ -63,19 +77,22 @@ class InputWindow(QMainWindow):
         super(QMainWindow, self).__init__()
         uic.loadUi('map.ui', self)
         self.setWindowTitle('MapApp')
-        self.showMap.clicked.connect(self.load_image)
-        self.parser = Parser()
-        self.map_show = False
+        self.lineEdit_3.setText('Москва')
+        self.address = None
+        self.index = None
         self.pt = None
         self.map_cords = None
+        self.map_show = False
+        self.show_post_index = False
+        self.showMap.clicked.connect(self.load_image)
+        self.parser = Parser()
         self.zoom = 9
-        self.lineEdit_3.setText('Москва')
         self.style = 'map'
-        self.address = None
-        lst = [self.mapButton, self.satButton, self.sklButton]
-        for i in lst:
+        for i in [self.mapButton, self.satButton, self.sklButton]:
             i.clicked.connect(lambda state, name=i.text(): self.sut(name))
         self.resetButton.clicked.connect(self.reset)
+        self.postBox.stateChanged.connect(self.set_post_index)
+        self.postLabel.hide()
 
     def load_image(self):
         first_cords = self.lineEdit.text()
@@ -97,7 +114,7 @@ class InputWindow(QMainWindow):
             self.pt = f'{crd},pma'
             self.set_map()
             self.map_show = True
-            self.addressLabel.setText('Адресс: ' + toponym)
+            self.addressLabel.setText('Адрес: ' + toponym)
             self.address = toponym
 
     def keyPressEvent(self, event):
@@ -127,9 +144,25 @@ class InputWindow(QMainWindow):
         pixmap = QPixmap('map.png')
         self.address = None
         self.label_3.setPixmap(pixmap)
+        if self.show_post_index and not self.index:
+            self.set_index()
+
+    def set_index(self):
+        self.postLabel.clear()
+        if self.map_cords:
+            self.index = self.parser.get_post_index(','.join(self.map_cords[::-1]))
+            print(self.index)
+            self.postLabel.setText('Индекс: ' + self.index)
+        else:
+            self.postLabel.setText('Сначала введите координаты или объект.')
 
     def reset(self):
         self.pt = None
+        self.index = None
+        self.show_post_index = False
+        self.postLabel.setText('Сначала введите координаты или объект.')
+        self.postBox.setChecked(False)
+        self.postLabel.hide()
         self.set_map()
         self.addressLabel.clear()
 
@@ -141,6 +174,14 @@ class InputWindow(QMainWindow):
         if text == 'Спутник':
             self.style = 'sat'
         self.set_map()
+
+    def set_post_index(self):
+        self.show_post_index = self.postBox.isChecked()
+        if self.show_post_index:
+            self.postLabel.show()
+        else:
+            self.postLabel.hide()
+        self.set_index()
 
 
 if __name__ == '__main__':
