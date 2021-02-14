@@ -71,6 +71,7 @@ class InputWindow(QMainWindow):
         self.zoom = 9
         self.lineEdit_3.setText('Москва')
         self.style = 'map'
+        self.address = None
         lst = [self.mapButton, self.satButton, self.sklButton]
         for i in lst:
             i.clicked.connect(lambda state, name=i.text(): self.sut(name))
@@ -85,7 +86,9 @@ class InputWindow(QMainWindow):
             self.map_cords = cords
             self.set_map()
             self.map_show = True
-            self.addressLabel.setText('Адресс: ' + self.parser.request_address(self.map_cords))
+            address = self.parser.request_address(self.map_cords)
+            self.addressLabel.setText('Адресс: ' + address)
+            self.address = address
         elif toponym:
             right_cords = self.parser.request_cords(toponym).split(' ')
             self.map_cords = right_cords[::-1]
@@ -95,6 +98,7 @@ class InputWindow(QMainWindow):
             self.set_map()
             self.map_show = True
             self.addressLabel.setText('Адресс: ' + toponym)
+            self.address = toponym
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_PageDown and self.map_show:
@@ -121,6 +125,8 @@ class InputWindow(QMainWindow):
     def set_map(self):
         self.parser.request_map(self.map_cords, self.zoom, self.style, self.pt)
         pixmap = QPixmap('map.png')
+        self.address = None
+        self.addressLabel.clear()
         self.label_3.setPixmap(pixmap)
 
     def reset(self):
