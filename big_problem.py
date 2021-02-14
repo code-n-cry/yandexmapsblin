@@ -126,12 +126,12 @@ class InputWindow(QMainWindow):
         self.parser.request_map(self.map_cords, self.zoom, self.style, self.pt)
         pixmap = QPixmap('map.png')
         self.address = None
-        self.addressLabel.clear()
         self.label_3.setPixmap(pixmap)
 
     def reset(self):
         self.pt = None
         self.set_map()
+        self.addressLabel.clear()
 
     def sut(self, text):
         if text == 'Гибрид':
