@@ -19,7 +19,7 @@ class Parser:
         if pt:
             map_params = {
                 'll': str_cords,
-                'size': '450,450',
+                'size': '650,450',
                 'l': f'{style}',
                 'z': zoom,
                 'pt': pt
@@ -27,7 +27,7 @@ class Parser:
         else:
             map_params = {
                 'll': str_cords,
-                'size': '450,450',
+                'size': '650,450',
                 'l': f'{style}',
                 'z': zoom
             }
@@ -46,7 +46,22 @@ class Parser:
         toponym_coodrinates = toponym["Point"]["pos"]
         return toponym_coodrinates
 
-    def request_address(self, cords, postal=False):
+    def get_post_index(self, subj):
+        try:
+            geo_params = {
+                'geocode': subj,
+                'apikey': self.geo_apikey,
+                'format': 'json'
+            }
+            response = requests.get(self.geo_service, params=geo_params).json()
+            toponym = response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
+            postal = toponym['metaDataProperty']['GeocoderMetaData']['Address']['postal_code']
+            print(postal)
+            return postal
+        except KeyError:
+            return 'не удалось получить'
+
+    def request_address(self, cords):
         geo_params = {
             'geocode': ','.join(cords[::-1]),
             'apikey': self.geo_apikey,
@@ -55,14 +70,7 @@ class Parser:
         response = requests.get(self.geo_service, params=geo_params).json()
         toponym = response['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']
         toponym_address = toponym['metaDataProperty']['GeocoderMetaData']['text']
-        try:
-            if postal:
-                return toponym_address + ', Почтоывй индекс: ' + \
-                       toponym['metaDataProperty']['GeocoderMetaData']['Address']['postal_code']
-            else:
-                return toponym_address
-        except Exception:
-            return toponym_address
+        return toponym_address
 
 
 class InputWindow(QMainWindow):
@@ -72,15 +80,11 @@ class InputWindow(QMainWindow):
         self.setWindowTitle('MapApp')
         self.showMap.clicked.connect(self.load_image)
         self.parser = Parser()
-        self.comboBox = QComboBox(self)
-        self.comboBox.resize(100, 20)
-        self.comboBox.move(650, 205)
-        self.comboBox.addItem('С индексом')
-        self.comboBox.addItem('Без индекса')
-        self.comboBox.activated.connect(self.comboChange)
         self.activ = 0
         self.map_show = False
         self.pt = None
+        self.show_post_index = False
+        self.index = None
         self.map_cords = None
         self.zoom = 9
         self.label_3.mousePressEvent = self.click
@@ -92,70 +96,52 @@ class InputWindow(QMainWindow):
         for i in lst:
             i.clicked.connect(lambda state, name=i.text(): self.sut(name))
         self.resetButton.clicked.connect(self.reset)
+        self.postBox.stateChanged.connect(self.set_post_index)
+        self.postLabel.hide()
 
     def click(self, event):
         try:
-            if self.activ == 0:
-                index = True
-            else:
-                index = False
-            coord = (event.pos().x() - 225) * (360 / pow(2, self.zoom + 8)), \
+            coord = (event.pos().x() - 325) * (360 / pow(2, self.zoom + 8)), \
                     (event.pos().y() - 225) * (360 / pow(2, self.zoom + 8))
-            print(coord)
             coords = [0, 0]
             coords[1] = str(float(self.map_cords[0]) - coord[1])
             coords[0] = str(float(self.map_cords[1]) + coord[0])
-            print(coords)
             crd1 = ','.join(coords)
             self.parser.request_map(self.map_cords, self.zoom, self.style, pt=f'{crd1},pma')
             self.pt = f'{crd1},pma'
             self.set_map()
             self.map_show = True
             self.addressLabel.setText(
-                'Адресс: ' + self.parser.request_address(coords[::-1], postal=index))
-        except Exception as e:
-            print(e)
+                'Адресс: ' + self.parser.request_address(coords[::-1]))
+            if self.show_post_index:
+                self.index = self.parser.get_post_index(crd1)
+                self.postLabel.clear()
+                self.postLabel.setText('Индекс: ' + self.index)
+        except Exception:
+            pass
 
     def load_image(self):
-        if self.activ == 0:
-            index = True
-        else:
-            index = False
-        try:
-            first_cords = self.lineEdit.text()
-            sec_cords = self.lineEdit_2.text()
-            toponym = self.lineEdit_3.text()
-            if first_cords and sec_cords:
-                cords = [first_cords, sec_cords]
-                self.map_cords = cords
-                self.set_map()
-                self.map_show = True
-                address = self.parser.request_address(self.map_cords, postal=index)
-                self.addressLabel.setText(
-                    'Адресс: ' + self.parser.request_address(self.map_cords, postal=index))
-                self.address = address
-            elif toponym:
-                right_cords = self.parser.request_cords(toponym).split(' ')
-                self.map_cords = right_cords[::-1]
-                crd = ','.join(self.map_cords[::-1])
-                self.parser.request_map(self.map_cords, self.zoom, self.style, pt=f'{crd},pma')
-                self.pt = f'{crd},pma'
-                self.set_map()
-                self.map_show = True
-                self.addressLabel.setText(
-                    'Адресс: ' + self.parser.request_address(self.map_cords, postal=index))
-                self.address = toponym
-        except Exception as e:
-            print(e)
-
-    def comboChange(self, index):
-        self.activ = index
-        if self.activ == 0:
-            index = True
-        else:
-            index = False
-        self.addressLabel.setText(
-            'Адресс: ' + self.parser.request_address(self.map_cords, postal=index))
+        first_cords = self.lineEdit.text()
+        sec_cords = self.lineEdit_2.text()
+        toponym = self.lineEdit_3.text()
+        if first_cords and sec_cords:
+            cords = [first_cords, sec_cords]
+            self.map_cords = cords
+            self.set_map()
+            self.map_show = True
+            address = self.parser.request_address(self.map_cords)
+            self.addressLabel.setText('Адресс: ' + address)
+            self.address = address
+        elif toponym:
+            right_cords = self.parser.request_cords(toponym).split(' ')
+            self.map_cords = right_cords[::-1]
+            crd = ','.join(self.map_cords[::-1])
+            self.parser.request_map(self.map_cords, self.zoom, self.style, pt=f'{crd},pma')
+            self.pt = f'{crd},pma'
+            self.set_map()
+            self.map_show = True
+            self.addressLabel.setText('Адрес: ' + toponym)
+            self.address = toponym
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_PageDown and self.map_show:
@@ -177,19 +163,33 @@ class InputWindow(QMainWindow):
             self.map_cords[0] = str(
                 float(self.map_cords[0]) - ((360 / pow(2, self.zoom + 8)) * 225))
         if self.map_show:
-            self.set_map(refresh=False)
+            self.set_map()
 
-    def set_map(self, refresh=True):
+    def set_map(self):
         self.parser.request_map(self.map_cords, self.zoom, self.style, self.pt)
         pixmap = QPixmap('map.png')
-        if refresh:
-            self.address = None
-            self.addressLabel.clear()
+        self.address = None
         self.label_3.setPixmap(pixmap)
+        if self.show_post_index and not self.index:
+            self.set_index()
+
+    def set_index(self):
+        self.postLabel.clear()
+        if self.map_cords:
+            self.index = self.parser.get_post_index(','.join(self.map_cords[::-1]))
+            self.postLabel.setText('Индекс: ' + self.index)
+        else:
+            self.postLabel.setText('Сначала введите координаты или объект.')
 
     def reset(self):
         self.pt = None
+        self.index = None
+        self.show_post_index = False
+        self.postLabel.setText('Сначала введите координаты или объект.')
+        self.postBox.setChecked(False)
+        self.postLabel.hide()
         self.set_map()
+        self.addressLabel.clear()
 
     def sut(self, text):
         if text == 'Гибрид':
@@ -199,6 +199,14 @@ class InputWindow(QMainWindow):
         if text == 'Спутник':
             self.style = 'sat'
         self.set_map()
+
+    def set_post_index(self):
+        self.show_post_index = self.postBox.isChecked()
+        if self.show_post_index:
+            self.postLabel.show()
+        else:
+            self.postLabel.hide()
+        self.set_index()
 
 
 if __name__ == '__main__':
